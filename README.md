@@ -44,7 +44,7 @@ https://localhost:8081/_explorer/index.html
 https://cosmos.azure.com/capacitycalculator/
 ```
 
-## IDE para CosmosDB Online
+## Painel para CosmosDB Online
 
 ```
 https://cosmos.azure.com/
