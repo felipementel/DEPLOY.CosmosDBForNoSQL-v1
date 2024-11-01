@@ -4,6 +4,13 @@ namespace PoC.AzureCosmosDbNoSQL._5_Index
 {
     internal class CosmosIndex
     {
+        public CosmosIndex()
+        {
+            Console.WriteLine();
+            Console.WriteLine(nameof(CosmosIndex));
+            Console.WriteLine();
+        }
+
         public async Task CreateIndex(Microsoft.Azure.Cosmos.Database database)
         {
             IndexingPolicy policy = new()

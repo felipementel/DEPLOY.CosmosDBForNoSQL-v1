@@ -16,10 +16,14 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<None Remove="6-Conflito\code.js" />
 		<None Remove="appSettings.json" />
 	</ItemGroup>
 
 	<ItemGroup>
+		<Content Include="6-Conflito\code.js">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
 		<Content Include="appSettings.json">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>

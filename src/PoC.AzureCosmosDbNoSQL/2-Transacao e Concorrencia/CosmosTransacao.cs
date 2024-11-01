@@ -6,6 +6,12 @@ namespace PoC.AzureCosmosDbNoSQL._2_Transacao_e_Concorrencia
 {
     internal class CosmosTransacao
     {
+        public CosmosTransacao()
+        {
+            Console.WriteLine();
+            Console.WriteLine(nameof(CosmosTransacao));
+            Console.WriteLine();
+        }
         public async Task ControleTransacao(Container container, Faker<ProductSimple> productTransactionFaker)
         {
             var products = productTransactionFaker.Generate(2);
