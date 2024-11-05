@@ -8,6 +8,9 @@
 		<Version>2.0.0</Version>
 		<UserSecretsId>Azure_ComosDbForNoSQL_Throughput</UserSecretsId>
 		<!--
+		
+		%AppData%/Microsoft/UserSecrets
+		
 		Azure_ComosDbForNoSQL_DP420
 		Azure_ComosDbForNoSQL_Docker
 		Azure_ComosDbForNoSQL_Serverless

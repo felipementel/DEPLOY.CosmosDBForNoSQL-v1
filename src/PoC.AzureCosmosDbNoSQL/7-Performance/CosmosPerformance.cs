@@ -20,7 +20,9 @@ namespace PoC.AzureCosmosDbNoSQL._7_Performance
                 FeedResponse<Product> response = await iterator.ReadNextAsync();
                 foreach (Product product in response)
                 {
-                    Console.WriteLine($"[{product.Id}]\t{product.Name,35}\t{product.Price,15:C}");
+                    Console.WriteLine($"[{product.Id}]\t" +
+                        $"{product.Name,35}\t" +
+                        $"{product.Price,15:C}");
                 }
             }
 
@@ -29,7 +31,10 @@ namespace PoC.AzureCosmosDbNoSQL._7_Performance
                 PopulateIndexMetrics = true
             };
 
-            FeedIterator<Product> iterator2 = container.GetItemQueryIterator<Product>(query, requestOptions: options);
+            FeedIterator<Product> iterator2 = container
+                .GetItemQueryIterator<Product>(
+                    query,
+                    requestOptions: options);
 
             while (iterator2.HasMoreResults)
             {
@@ -42,7 +47,10 @@ namespace PoC.AzureCosmosDbNoSQL._7_Performance
                 Console.WriteLine(response.IndexMetrics);
             }
 
-            FeedIterator<Product> iterator3 = container.GetItemQueryIterator<Product>(query, requestOptions: options);
+            FeedIterator<Product> iterator3 = container
+                .GetItemQueryIterator<Product>(
+                    query,
+                    requestOptions: options);
 
             //Total RU´s
             double totalRUs = 0;
@@ -59,44 +67,7 @@ namespace PoC.AzureCosmosDbNoSQL._7_Performance
                 totalRUs += response.RequestCharge;
             }
 
-            Console.WriteLine($"Total RUs:\t{totalRUs:0.00}");
-
-            //Cache
-
-            //Nível do item
-            ItemRequestOptions operationOptions = new()
-            {
-                ConsistencyLevel = ConsistencyLevel.Eventual,
-                DedicatedGatewayRequestOptions = new()
-                {
-                    MaxIntegratedCacheStaleness = TimeSpan.FromMinutes(15)
-                },
-                IfMatchEtag = "etag"
-            };
-
-            var item = new Product
-            {
-                Id = Guid.NewGuid().ToString(),
-                Name = "Product 1",
-                Price = 100
-            };
-
-            Microsoft.Azure.Cosmos.PartitionKey partitionKey = new("category");
-
-            await container.UpsertItemAsync<Product>(item, partitionKey, requestOptions: operationOptions);
-
-
-            //Nível da Pesquisa
-            QueryRequestOptions queryOptions = new()
-            {
-                ConsistencyLevel = ConsistencyLevel.Eventual,
-                DedicatedGatewayRequestOptions = new()
-                {
-                    MaxIntegratedCacheStaleness = TimeSpan.FromSeconds(120)
-                }
-            };
-
-            FeedIterator<Product> iterator5 = container.GetItemQueryIterator<Product>(query, requestOptions: queryOptions);
+            Console.WriteLine($"Total RUs:\t{totalRUs:0.00}");           
         }   
     }
 }

@@ -18,7 +18,7 @@ namespace PoC.AzureCosmosDbNoSQL._4_CustomQuery
             using (FeedIterator<ProductSimple> feedIterator = container.GetItemQueryIterator<ProductSimple>(
                 query,
                 null,
-                new QueryRequestOptions() { }))
+                new QueryRequestOptions() {  }))
             {
                 while (feedIterator.HasMoreResults)
                 {

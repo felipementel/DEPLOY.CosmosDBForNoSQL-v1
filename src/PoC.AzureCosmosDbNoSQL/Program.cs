@@ -67,51 +67,51 @@ Console.WriteLine("Created Database: {0}\n", databaseResponse_Throughput.Databas
         .CreateContainerIfNotExistsAsync(containerProperties, throughput: 400); // Provimento de Throughput 400 RU/s
 
 
-    //var ProductFaker = new Faker<Product>("pt_BR")
-    //    .RuleFor(p => p.Id, f => Guid.NewGuid().ToString())
-    //    .RuleFor(p => p.Name, f => f.Commerce.ProductName())
-    //    .RuleFor(p => p.CategoryId, f => Guid.NewGuid().ToString())
-    //    .RuleFor(p => p.Category, f => f.Commerce.Categories(1)[0])
-    //    .RuleFor(p => p.Price, f => f.Random.Double(1, 100))
-    //    .RuleFor(p => p.Tags, f => f.Commerce.Categories(3).ToArray())
-    //    .FinishWith((f, u) =>
-    //    {
-    //        Console.WriteLine("Product Created Id={0}", u.Id);
-    //    });
+    var ProductFaker = new Faker<Product>("pt_BR")
+        .RuleFor(p => p.Id, f => Guid.NewGuid().ToString())
+        .RuleFor(p => p.Name, f => f.Commerce.ProductName())
+        .RuleFor(p => p.CategoryId, f => Guid.NewGuid().ToString())
+        .RuleFor(p => p.Category, f => f.Commerce.Categories(1)[0])
+        .RuleFor(p => p.Price, f => f.Random.Double(1, 100))
+        .RuleFor(p => p.Tags, f => f.Commerce.Categories(3).ToArray())
+        .FinishWith((f, u) =>
+        {
+            Console.WriteLine("Product Created Id={0}", u.Id);
+        });
 
-    //var product = ProductFaker.Generate();
+    var product = ProductFaker.Generate();
 
-    ////Escrita
-    //Create create = new();
-    //await create.Insert(container_Serverless, product);
+    //Escrita
+    Create create = new();
+    await create.Insert(container_Serverless, product);
 
-    //BulkInsert bulkInsert = new();
-    //Container containerBulk = await bulkInsert.BulkInsertModel(configuration);
+    BulkInsert bulkInsert = new();
+    Container containerBulk = await bulkInsert.BulkInsertModel(configuration);
 
-    ////Leitura
-    //Read read = new();
-    //await read.Get(container_Serverless, product);
+    //Leitura
+    Read read = new();
+    await read.Get(container_Serverless, product);
 
-    //ReadList readList = new();
-    //await readList.GetList(containerBulk);
+    ReadList readList = new();
+    await readList.GetList(containerBulk);
 
-    ////update
-    //Update update = new();
-    //await update.Updating_Upser(container_Serverless, product);
-    //await update.Updating_Replace(container_Serverless, product);
+    //update
+    Update update = new();
+    await update.Updating_Upser(container_Serverless, product);
+    await update.Updating_Replace(container_Serverless, product);
 
-    ////ttl
-    //product.TTL = 5;
-    //await container_Serverless.UpsertItemAsync<Product>(product);
+    //ttl
+    product.TTL = 5;
+    await container_Serverless.UpsertItemAsync<Product>(product);
 
-    ////delete
-    //Delete delete = new();
-    //await delete.DeleteItem(container_Serverless, product);
+    //delete
+    Delete delete = new();
+    await delete.DeleteItem(container_Serverless, product);
 
 }
 // ==================================================
 {
-    Container container2 = await databaseCanalDEPLOY_Serverless
+    Container containerV2 = await databaseCanalDEPLOY_Serverless
         .CreateContainerIfNotExistsAsync(
         "simpleProducts",
             "/category");
@@ -127,25 +127,25 @@ Console.WriteLine("Created Database: {0}\n", databaseResponse_Throughput.Databas
             Console.WriteLine("Product Created Price={0}", u.Price);
         });
 
-    ////Transacao
-    //CosmosTransacao transacao = new();
-    //await transacao.ControleTransacao(container2, productSimpleFaker);
+    //Transacao
+    CosmosTransacao transacao = new();
+    await transacao.ControleTransacao(containerV2, productSimpleFaker);
 
 
-    //// concorrencia entre leitura e escrita
-    //CosmosConcorrencia concorrencia = new();
-    //await concorrencia.ControleDeConcorrencia(container2, productSimpleFaker);
+    // Concorrencia entre leitura e escrita
+    CosmosConcorrencia concorrencia = new();
+    await concorrencia.ControleDeConcorrencia(containerV2, productSimpleFaker);
 
 
     //Bulk Operations
     BulkCosmos bulkCosmos = new();
-    await bulkCosmos.BulkMode(container2, productSimpleFaker, configuration);
+    await bulkCosmos.BulkMode(containerV2, productSimpleFaker, configuration);
 
 
     //Custom Queries
     CosmosCustomQuery customQuery = new();
-    await customQuery.ExecuteQuery(container2);
-    await customQuery.ExecuteQueryWithFilter(container2);
+    await customQuery.ExecuteQuery(containerV2);
+    await customQuery.ExecuteQueryWithFilter(containerV2);
 
     //Index
     CosmosIndex cosmosIndex = new();

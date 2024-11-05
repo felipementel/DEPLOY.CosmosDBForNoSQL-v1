@@ -39,10 +39,12 @@ namespace PoC.AzureCosmosDbNoSQL._2_Transacao_e_Concorrencia
             {
                 Console.WriteLine("First product created successfully");
 
-                TransactionalBatchOperationResult<ProductSimple> result1 = responseBatch.GetOperationResultAtIndex<ProductSimple>(0);
+                TransactionalBatchOperationResult<ProductSimple> result1 = responseBatch
+                    .GetOperationResultAtIndex<ProductSimple>(0);
                 ProductSimple firstProductResult = result1.Resource;
 
-                TransactionalBatchOperationResult<ProductSimple> result2 = responseBatch.GetOperationResultAtIndex<ProductSimple>(1);
+                TransactionalBatchOperationResult<ProductSimple> result2 = responseBatch
+                    .GetOperationResultAtIndex<ProductSimple>(1);
                 ProductSimple secondProductResult = result2.Resource;
 
             }

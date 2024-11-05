@@ -30,7 +30,8 @@ internal class CosmosConcorrencia
             IfMatchEtag = eTag // <-- SEMPRE utilizar ETag para controle de concorrência
         };
 
-        await container.UpsertItemAsync<ProductSimple>(product1, requestOptions: itemRequestOption);
+        await container.UpsertItemAsync<ProductSimple>(product1,
+            requestOptions: itemRequestOption);
 
 
         // Client 1

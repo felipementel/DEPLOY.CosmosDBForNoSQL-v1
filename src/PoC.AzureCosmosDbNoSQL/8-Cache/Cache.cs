@@ -26,19 +26,13 @@ namespace PoC.AzureCosmosDbNoSQL._7_Performance
                     PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase,
                     IgnoreNullValues = true
                 },
-
-
-                AllowBulkExecution = true, // <--- Bulk support
-                RequestTimeout = TimeSpan.FromMinutes(3),
-
-
-
-                ConnectionMode = ConnectionMode.Gateway,
+                ConnectionMode = ConnectionMode.Gateway, // <-- Para usar o Cache, precisa ser Gateway
                 ConsistencyLevel = ConsistencyLevel.Session,
                 ApplicationName = "Canal DEPLOY - Azure Cosmos DB NoSQL"
             });
 
             Microsoft.Azure.Cosmos.Database databaseCanalDEPLOY = client.GetDatabase("CanalDEPLOY-Cache");
+            
             if (databaseCanalDEPLOY != null)
             {
                 await databaseCanalDEPLOY.DeleteAsync();
@@ -85,7 +79,46 @@ namespace PoC.AzureCosmosDbNoSQL._7_Performance
 
             Console.WriteLine($"Elapsed time: {stopwatch.ElapsedMilliseconds} ms");
 
+            //Cache
 
+            //Nível do item
+            ItemRequestOptions operationOptions = new()
+            {
+                ConsistencyLevel = ConsistencyLevel.Eventual,
+                DedicatedGatewayRequestOptions = new()
+                {
+                    MaxIntegratedCacheStaleness = TimeSpan.FromMinutes(15)
+                },
+                IfMatchEtag = "etag"
+            };
+
+            var item2 = new Product
+            {
+                Id = Guid.NewGuid().ToString(),
+                Name = "Product 1",
+                Price = 100
+            };
+
+            Microsoft.Azure.Cosmos.PartitionKey partitionKey = new("category");
+
+            await container.UpsertItemAsync<Product>(item2, partitionKey, requestOptions: operationOptions);
+
+
+            //Nível da Pesquisa
+            QueryRequestOptions queryOptions = new()
+            {
+                ConsistencyLevel = ConsistencyLevel.Eventual,
+                DedicatedGatewayRequestOptions = new()
+                {
+                    MaxIntegratedCacheStaleness = TimeSpan.FromSeconds(120)
+                }
+            };
+
+            string sql = "SELECT * FROM products p";
+
+            QueryDefinition query = new(sql);
+
+            FeedIterator<Product> iterator5 = container.GetItemQueryIterator<Product>(query, requestOptions: queryOptions);
         }   
     }
 }
