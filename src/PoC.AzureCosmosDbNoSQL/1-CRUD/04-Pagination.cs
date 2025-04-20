@@ -14,7 +14,7 @@ internal class ReadList
     public async Task GetList(Microsoft.Azure.Cosmos.Container container)
     {
         // 1> Forma correta
-        string continuationToken = null;
+        string? continuationToken = null;
         int page = 0;
 
         // 1.1> Query to count

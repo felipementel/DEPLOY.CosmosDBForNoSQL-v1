@@ -1,7 +1,6 @@
 ﻿using Bogus;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Fluent;
-using Microsoft.Azure.Cosmos.Serialization.HybridRow.Schemas;
 using Microsoft.Extensions.Configuration;
 using System.Diagnostics;
 
@@ -11,36 +10,50 @@ namespace PoC.AzureCosmosDbNoSQL._7_Performance
     {
         public async Task SelectUsingCacheConnection(IConfiguration configuration)
         {
-            var containerThrought = await CreateDatabase_Throughput(configuration);
+            var containerThroughput = await CreateDatabase_Throughput(configuration);
             var containerCache = await CreateDatabase_Cache(configuration);
 
-            LoadInfo(containerThrought.Container, containerCache.Container);
+            List<Task> tasks = new List<Task>();
+            tasks.Add(LoadInfo(containerCache.Container));
+            tasks.Add(LoadInfo(containerThroughput.Container));
 
+            await Task.WhenAll(tasks);
 
+            Console.WriteLine("** Count items");
+            Console.Write("Cache ");
+            CountItems(containerCache);
+
+            Console.WriteLine();
+            Console.Write("Throughput ");
+            CountItems(containerThroughput);
+
+            Console.WriteLine();
+            Console.WriteLine("** Searchs");
+            Console.WriteLine();
             Stopwatch stopwatch = Stopwatch.StartNew();
 
-            var itemThroughput = containerThrought.Container.GetItemLinqQueryable<Product>(allowSynchronousQueryExecution: true)
-                .Where(p => p.Price > 10)
-                .OrderBy(p => p.Price)
-                .Select(p => new { p.Id, p.Name, p.Price });
+            var itemThroughput = Query_One(containerThroughput.Container);
 
             stopwatch.Stop();
-            Console.WriteLine($"Elapsed time: {stopwatch.ElapsedMilliseconds} ms");
+            Console.WriteLine($"* Throughput Elapsed time: {stopwatch.ElapsedMilliseconds} ms and find {itemThroughput.Count()} itens");
+            Console.WriteLine($"   RUs:\t{containerThroughput.RequestCharge:0.00}");
+            Console.WriteLine();
+
 
             //Cache
-            stopwatch.Restart();
+            stopwatch.Start();
 
-            var itemCache = containerThrought.Container.GetItemLinqQueryable<Product>(allowSynchronousQueryExecution: true)
-                .Where(p => p.Price > 10)
-                .OrderBy(p => p.Price)
-                .Select(p => new { p.Id, p.Name, p.Price });
+            var itemCache = Query_One_Cache(containerCache.Container);
 
             stopwatch.Stop();
-            Console.WriteLine($"Elapsed time: {stopwatch.ElapsedMilliseconds} ms");
+            Console.WriteLine($"* Cache Elapsed time: {stopwatch.ElapsedMilliseconds} ms and find {itemCache.Count()} itens");
+            Console.WriteLine($"   RUs:\t{containerCache.RequestCharge:0.00}");
+            Console.WriteLine();
 
 
 
 
+            //Query_Two(containerCache.r);
 
 
             ////Nível do item
@@ -83,10 +96,51 @@ namespace PoC.AzureCosmosDbNoSQL._7_Performance
             //FeedIterator<Product> iterator5 = container.GetItemQueryIterator<Product>(query, requestOptions: queryOptions);
         }
 
-        private void LoadInfo(
-            Microsoft.Azure.Cosmos.Container containerThroughput,
-            Microsoft.Azure.Cosmos.Container containerCache)
+        private IQueryable<dynamic> Query_One(Microsoft.Azure.Cosmos.Container container)
         {
+            return container.GetItemLinqQueryable<Product>(
+                allowSynchronousQueryExecution: true)
+                .Where(p => p.Price > 10 && p.Price < 13)
+                .OrderBy(p => p.Price)
+                .Select(p => new { p.Name, p.Category });
+        }
+
+        private IQueryable<dynamic> Query_One_Cache(Microsoft.Azure.Cosmos.Container container)
+        {
+            return container.GetItemLinqQueryable<Product>(
+                allowSynchronousQueryExecution: true,
+                null,
+                new QueryRequestOptions()
+                {
+                    MaxItemCount = -1,
+                    DedicatedGatewayRequestOptions = new DedicatedGatewayRequestOptions()
+                    {
+                        MaxIntegratedCacheStaleness = TimeSpan.FromSeconds(120)
+                    }
+                })
+                .Where(p => p.Price > 10 && p.Price < 13)
+                .OrderBy(p => p.Price)
+                .Select(p => new { p.Name, p.Category });
+        }
+
+        private void CountItems(ContainerResponse container)
+        {
+            var countTotal = container.Container
+                .GetItemLinqQueryable<Product>(allowSynchronousQueryExecution: true,
+                continuationToken: null,
+                new QueryRequestOptions()
+                {
+                    MaxItemCount = -1
+                })
+                .Count();
+
+            Console.WriteLine($"  Total items: {countTotal}");
+        }
+
+        private async Task LoadInfo(
+            Microsoft.Azure.Cosmos.Container container)
+        {
+            Console.WriteLine();
             var ProductFaker = new Faker<Product>("pt_BR")
                 .RuleFor(p => p.Id, f => Guid.NewGuid().ToString())
                 .RuleFor(p => p.Name, f => f.Commerce.ProductName())
@@ -99,17 +153,23 @@ namespace PoC.AzureCosmosDbNoSQL._7_Performance
                     //Console.WriteLine("Product Created Id={0}", u.Id);
                 });
 
-            var productsToInsert = ProductFaker.Generate(300);
+            for (int i = 0; i < 10; i++)
+            {
+                var productsToInsert = ProductFaker.Generate(200);
 
-            productsToInsert.Select(itemToInsert =>
-                containerThroughput.CreateItemAsync(
-                    itemToInsert,
-                    new Microsoft.Azure.Cosmos.PartitionKey(itemToInsert.Category)));
+                List<Task> taskThroughputAndCache = new();
 
-            productsToInsert.Select(itemToInsert =>
-               containerCache.CreateItemAsync(
-                   itemToInsert,
-                   new Microsoft.Azure.Cosmos.PartitionKey(itemToInsert.Category)));
+                foreach (Product itemToInsert in productsToInsert)
+                {
+                    taskThroughputAndCache.Add(container.CreateItemAsync(
+                        itemToInsert,
+                        new Microsoft.Azure.Cosmos.PartitionKey(itemToInsert.CategoryId)));
+                }
+
+                await Task.WhenAll(taskThroughputAndCache);
+
+                Console.WriteLine($"Products inserted in {container.Database.Id} database, {i.ToString()} times");
+            }
         }
 
         private async Task<ContainerResponse> CreateDatabase_Cache(IConfiguration configuration)
@@ -137,15 +197,14 @@ namespace PoC.AzureCosmosDbNoSQL._7_Performance
                 ApplicationName = "Canal DEPLOY - Azure Cosmos DB NoSQL"
             });
 
-            Microsoft.Azure.Cosmos.Database databaseCanalDEPLOY = client.GetDatabase("CanalDEPLOY-Cache");
+            DatabaseResponse databaseResponse = await client
+                .CreateDatabaseIfNotExistsAsync("CanalDEPLOYCache");
 
-            if (databaseCanalDEPLOY != null)
-            {
-                await databaseCanalDEPLOY.DeleteAsync();
-            }
+            Microsoft.Azure.Cosmos.Database databaseCanalDEPLOY = client
+                .GetDatabase(databaseResponse.Database.Id);
 
-
-            Microsoft.Azure.Cosmos.Container container;
+            Console.WriteLine("Created Database at Cache Cosmos Server: {0}\n",
+                databaseResponse.Database.Id);
 
             ContainerProperties containerProperties = new("products", "/categoryId");
             containerProperties.IndexingPolicy.Automatic = true;
@@ -171,28 +230,32 @@ namespace PoC.AzureCosmosDbNoSQL._7_Performance
             var client = new CosmosClientBuilder(endpointThroughput, keyThroughput)
                 .Build();
 
-            client = new(endpointThroughput, keyThroughput, new CosmosClientOptions()
-            {
-                //ApplicationRegion = Regions.BrazilSouth,
-                SerializerOptions = new CosmosSerializationOptions()
+            client = new(
+                endpointThroughput,
+                keyThroughput,
+                new CosmosClientOptions()
                 {
-                    PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase,
-                    IgnoreNullValues = true
-                },
-                ConnectionMode = ConnectionMode.Direct, // <-- Direct não utiliza cache
-                ConsistencyLevel = ConsistencyLevel.Session,
-                ApplicationName = "Canal DEPLOY - Azure Cosmos DB NoSQL"
-            });
+                    PortReuseMode = PortReuseMode.PrivatePortPool, // This property allows the SDK to use a small pool of ephemeral ports for various Azure Cosmos DB destination endpoints.
+                    IdleTcpConnectionTimeout = TimeSpan.FromMinutes(20), // This property allows the SDK to close idle connections after a specified time.
+                    //ApplicationRegion = Regions.BrazilSouth,
+                    SerializerOptions = new CosmosSerializationOptions()
+                    {
+                        PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase,
+                        IgnoreNullValues = true
+                    },
+                    ConnectionMode = ConnectionMode.Direct, // <-- Direct não utiliza cache
+                    ConsistencyLevel = ConsistencyLevel.Session,
+                    ApplicationName = "Canal DEPLOY - Azure Cosmos DB NoSQL"
+                });
 
-            Microsoft.Azure.Cosmos.Database databaseCanalDEPLOY = client.GetDatabase("CanalDEPLOY-Cache");
+            DatabaseResponse databaseResponse = await client
+                .CreateDatabaseIfNotExistsAsync("CanalDEPLOYCache");
 
-            if (databaseCanalDEPLOY != null)
-            {
-                await databaseCanalDEPLOY.DeleteAsync();
-            }
+            Microsoft.Azure.Cosmos.Database databaseCanalDEPLOY = client
+                .GetDatabase(databaseResponse.Database.Id);
 
-
-            Microsoft.Azure.Cosmos.Container container;
+            Console.WriteLine("Created Database at Throughout Cosmos Server: {0}\n",
+                databaseResponse.Database.Id);
 
             ContainerProperties containerProperties = new("products", "/categoryId");
             containerProperties.IndexingPolicy.Automatic = true;

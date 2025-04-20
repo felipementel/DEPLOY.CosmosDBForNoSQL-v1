@@ -15,13 +15,12 @@ namespace PoC.AzureCosmosDbNoSQL
             string? endpointThroughput = configuration.GetSection("CosmosDBForNoSQL:Throughput:Endpoint").Value;
             string? keyThroughput = configuration.GetSection("CosmosDBForNoSQL:Throughput:Key").Value;
 
-            CosmosClient clientServerless, clientThroughput, clientContainer = null;
+            CosmosClient clientServerless, clientThroughput;
 
             //mode 0 - SERVERLESS
             clientServerless = new CosmosClientBuilder(endpointServerless, keyServerless)
             //.WithApplicationPreferredRegions(new List<string> { "francecentral" })
             .Build();
-
 
             clientServerless = new(endpointServerless, keyServerless, new CosmosClientOptions()
             {
@@ -76,6 +75,7 @@ namespace PoC.AzureCosmosDbNoSQL
             // leitura das propriedades da conta (Caso ocorra erro, verificar em Settings/Networking se seu IP esta habilitado)
 
             AccountProperties accountGatewayEventual = await clientServerless.ReadAccountAsync();
+
 
             Console.WriteLine("** Serverless");
             Console.WriteLine(accountGatewayEventual.Id);

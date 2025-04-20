@@ -2,7 +2,6 @@
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Fluent;
 using Microsoft.Extensions.Configuration;
-using System.ClientModel;
 using System.Diagnostics;
 
 namespace PoC.AzureCosmosDbNoSQL.CRUD;
@@ -64,7 +63,7 @@ internal class BulkInsert
 
         Container container;
         ContainerProperties containerProperties = new(
-            "products", 
+            "products",
             "/categoryId");
 
         containerProperties.IndexingPolicy.Automatic = true;
@@ -102,19 +101,19 @@ internal class BulkInsert
         // Insert 1
         products_Linq.Select(itemToInsert =>
         container.CreateItemAsync(
-            itemToInsert, 
+            itemToInsert,
             new PartitionKey(itemToInsert.CategoryId)))
             .ToList();
 
         stopwatch.Stop();
-        Console.WriteLine("LINQ -\t\t Elapsed time: {0} ms", 
+        Console.WriteLine("LINQ -\t\t Elapsed time: {0} ms",
             stopwatch.ElapsedMilliseconds);
 
 
 
 
         // Insert 2
-        List<Task> concurrentTasks = null;
+        List<Task> concurrentTasks;
 
         stopwatch.Restart();
         concurrentTasks = new List<Task>();
@@ -142,7 +141,7 @@ internal class BulkInsert
         Parallel.ForEach(products_Parallel_ForEach, itemToInsert =>
         {
             concurrentTasks.Add(container.CreateItemAsync(
-                itemToInsert, 
+                itemToInsert,
                 new PartitionKey(itemToInsert.CategoryId)));
         });
 
