@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "PoC.AzureCosmosDbNoSQL": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}
