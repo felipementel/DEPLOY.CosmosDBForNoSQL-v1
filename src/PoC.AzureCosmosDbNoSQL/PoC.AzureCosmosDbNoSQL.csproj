@@ -41,11 +41,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Azure.Identity" Version="1.13.2" />
+		<PackageReference Include="Azure.Identity" Version="1.14.0" />
 		<PackageReference Include="Bogus" Version="35.6.3" />
-		<PackageReference Include="Microsoft.Azure.Cosmos" Version="3.50.0" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.4" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.4" />
+		<PackageReference Include="Microsoft.Azure.Cosmos" Version="3.52.0" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.6" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.6" />
 		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 	</ItemGroup>
